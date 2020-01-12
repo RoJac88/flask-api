@@ -1,8 +1,22 @@
+from functools import wraps
+
 from app import jwt
 from flask import jsonify, request, abort, json
-from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, get_jwt_claims
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, get_jwt_claims, verify_jwt_in_request
 from app.models import User, users_schema
 from app.auth import bp
+
+def admin_required(fn):
+    """Custum decorator to check for admin permissions (role=0)"""
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        verify_jwt_in_request()
+        claims = get_jwt_claims()
+        if claims['role'] > 0:
+            abort(403, "You are not allowed to view this resource")
+        else:
+            return fn(*args, **kwargs)
+    return wrapper
 
 # Create a function that will be called whenever create_access_token
 # is used. It will take whatever object is passed into the
@@ -35,12 +49,8 @@ def login():
         abort(401, "Bad username or passowrd")
 
 @bp.route('/users', methods=['GET'])
-@jwt_required
+@admin_required
 def get_users():
-    current_user = get_jwt_identity()
-    role = get_jwt_claims()['role']
-    if role > 0:
-        abort(403, "You are not allowed to view this resource")
     all_users = User.query.all()
     res = users_schema.dump(all_users)
     return jsonify(res), 200

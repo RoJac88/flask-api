@@ -1,4 +1,5 @@
 from app import db, ma 
+from marshmallow import fields 
 from datetime import datetime as dt
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -19,9 +20,12 @@ class User(db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
-class UserSchema(ma.TableSchema):
+class UserSchema(ma.ModelSchema):
+
+    email = fields.Email()
+    
     class Meta:
-        table = User.__table__
+        model = User 
         exclude = (["password_hash"])
 
 user_schema = UserSchema()

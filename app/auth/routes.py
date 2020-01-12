@@ -1,8 +1,8 @@
-from app import app, jwt
-from werkzeug.exceptions import HTTPException
+from app import jwt
 from flask import jsonify, request, abort, json
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, get_jwt_claims
 from app.models import User, UserSchema
+from app.auth import bp
 
 # Create a function that will be called whenever create_access_token
 # is used. It will take whatever object is passed into the
@@ -17,11 +17,7 @@ def add_claims_to_access_token(user):
 def user_identity_lookup(user):
     return user.username
 
-@app.route('/')
-def hello_world():
-    return "Hello world"
-
-@app.route('/login', methods=['POST'])
+@bp.route('/login', methods=['POST'])
 def login():
     if not request.is_json:
         abort(400, "Missing JSON in request")
@@ -38,7 +34,7 @@ def login():
     else:
         abort(401, "Bad username or passowrd")
 
-@app.route('/users', methods=['GET'])
+@bp.route('/users', methods=['GET'])
 @jwt_required
 def get_users():
     current_user = get_jwt_identity()
@@ -50,44 +46,3 @@ def get_users():
     res = schema.dump(users)
     print(res)
     return jsonify(res), 200
-
-# Error handling:
-
-@jwt.unauthorized_loader
-def unauthorized_callback(msg):
-    return jsonify({
-        'code': 401,
-        'name': 'Unauthorized',
-        'description': msg
-    }), 401
-
-@jwt.expired_token_loader
-def expired_token_callback(token):
-    token_type = token['type']
-    return jsonify({
-        'code': 401,
-        'name': 'Unauthorized',
-        'description': f'The {token_type} token has expired'
-    }), 401
-
-@jwt.invalid_token_loader
-def invalid_token_callback(msg):
-    return jsonify({
-        'code': 401,
-        'name': 'Unauthorized',
-        'description': msg
-    }), 401
-
-@app.errorhandler(HTTPException)
-def handle_exception(e):
-    """Return JSON instead of HTML for HTTP errors (flask docs)."""
-    # start with the correct headers and status code from the error
-    response = e.get_response()
-    # replace the body with JSON
-    response.data = json.dumps({
-        "code": e.code,
-        "name": e.name,
-        "description": e.description,
-    })
-    response.content_type = "application/json"
-    return response

@@ -1,9 +1,10 @@
 from functools import wraps
+from marshmallow import ValidationError
 
 from app import jwt
 from flask import jsonify, request, abort, json
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, get_jwt_claims, verify_jwt_in_request
-from app.models import User, users_schema
+from app.models import db, User, user_schema, users_schema
 from app.auth import bp
 
 def admin_required(fn):
@@ -47,6 +48,31 @@ def login():
         return jsonify(ret), 200
     else:
         abort(401, "Bad username or passowrd")
+
+@bp.route('/register', methods=['POST'])
+@admin_required
+def register():
+    if not request.is_json:
+        abort(400, "Missing JSON in request")
+    username = request.json.get('username', None)
+    if not username:
+        abort(400, "Missing username parameter")
+    password = request.json.get('password', None)
+    if not password:
+        abort(400, "Missing password parameter")
+    if User.query.filter_by(username=username).first() != None:
+        abort(409, "Username already registered")
+    try:
+        email = request.json.get('email', None)
+        new_user = user_schema.load({'username': username, 'email': email})
+    except ValidationError as e:
+        abort(400, e.messages)
+    if User.query.filter_by(email=email).first() != None:
+        abort(409, "Email already registered")
+    new_user.set_password(password)
+    db.session.add(new_user)
+    db.session.commit()
+    return user_schema.dump(new_user), 201
 
 @bp.route('/users', methods=['GET'])
 @admin_required

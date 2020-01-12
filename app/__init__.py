@@ -11,6 +11,7 @@ ma = Marshmallow()
 jwt = JWTManager()
 
 def create_app(config_class=Config):
+    """Initialize the core application."""
     app = Flask(__name__)
     app.config.from_object(config_class)
     db.init_app(app)

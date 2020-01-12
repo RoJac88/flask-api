@@ -4,8 +4,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), index=True, unique=True)
+    username = db.Column(db.String(64), index=True, unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
+    email = db.Column(db.String(120), unique=True, nullable=False)
     role = db.Column(db.Integer, default=1)
     created_at = db.Column(db.DateTime, index=True, default=dt.utcnow)
 
@@ -18,6 +19,10 @@ class User(db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
-class UserSchema(ma.ModelSchema):
+class UserSchema(ma.TableSchema):
     class Meta:
-        fields = ("id", "username", "role", "created_at")
+        table = User.__table__
+        exclude = (["password_hash"])
+
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)

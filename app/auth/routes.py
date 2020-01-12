@@ -1,7 +1,7 @@
 from app import jwt
 from flask import jsonify, request, abort, json
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, get_jwt_claims
-from app.models import User, UserSchema
+from app.models import User, users_schema
 from app.auth import bp
 
 # Create a function that will be called whenever create_access_token
@@ -41,8 +41,6 @@ def get_users():
     role = get_jwt_claims()['role']
     if role > 0:
         abort(403, "You are not allowed to view this resource")
-    schema = UserSchema(many=True)
-    users = User.query.all()
-    res = schema.dump(users)
-    print(res)
+    all_users = User.query.all()
+    res = users_schema.dump(all_users)
     return jsonify(res), 200

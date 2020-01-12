@@ -28,7 +28,7 @@ def login():
     username = request.json.get('username', None)
     if not username:
         abort(400, "Missing username parameter")
-    password = request.json.get('username', None)
+    password = request.json.get('password', None)
     if not password:
         abort(400, "Missing password parameter")
     user =  User.query.filter_by(username=username).first()

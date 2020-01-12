@@ -1,4 +1,5 @@
 from app import db, ma 
+from datetime import datetime as dt
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model):
@@ -6,6 +7,7 @@ class User(db.Model):
     username = db.Column(db.String(64), index=True, unique=True)
     password_hash = db.Column(db.String(128))
     role = db.Column(db.Integer, default=1)
+    created_at = db.Column(db.DateTime, index=True, default=dt.utcnow)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -18,4 +20,4 @@ class User(db.Model):
 
 class UserSchema(ma.ModelSchema):
     class Meta:
-        fields = ("id", "username", "role")
+        fields = ("id", "username", "role", "created_at")

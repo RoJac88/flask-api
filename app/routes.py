@@ -51,6 +51,32 @@ def get_users():
     print(res)
     return jsonify(res), 200
 
+# Error handling:
+
+@jwt.unauthorized_loader
+def unauthorized_callback(msg):
+    return jsonify({
+        'code': 401,
+        'name': 'Unauthorized',
+        'description': msg
+    }), 401
+
+@jwt.expired_token_loader
+def expired_token_callback(token):
+    token_type = token['type']
+    return jsonify({
+        'code': 401,
+        'name': 'Unauthorized',
+        'description': f'The {token_type} token has expired'
+    }), 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(msg):
+    return jsonify({
+        'code': 401,
+        'name': 'Unauthorized',
+        'description': msg
+    }), 401
 
 @app.errorhandler(HTTPException)
 def handle_exception(e):

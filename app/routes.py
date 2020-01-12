@@ -1,8 +1,8 @@
 from app import app, jwt
 from werkzeug.exceptions import HTTPException
 from flask import jsonify, request, abort, json
-from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
-from app.models import User
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, get_jwt_claims
+from app.models import User, UserSchema
 
 # Create a function that will be called whenever create_access_token
 # is used. It will take whatever object is passed into the
@@ -12,10 +12,7 @@ from app.models import User
 def add_claims_to_access_token(user):
     return {'role': user.role}
 
-# Create a function that will be called whenever create_access_token
-# is used. It will take whatever object is passed into the
-# create_access_token method, and lets us define what the identity
-# of the access token should be.
+# ... define what the identity of the access token should be.
 @jwt.user_identity_loader
 def user_identity_lookup(user):
     return user.username
@@ -41,12 +38,18 @@ def login():
     else:
         abort(401, "Bad username or passowrd")
 
-@app.route('/user', methods=['GET'])
+@app.route('/users', methods=['GET'])
 @jwt_required
-def get_user():
+def get_users():
     current_user = get_jwt_identity()
-    print(current_user)
-    return jsonify(logged_in_as=current_user), 200
+    role = get_jwt_claims()['role']
+    if role > 0:
+        abort(403, "You are not allowed to view this resource")
+    schema = UserSchema(many=True)
+    users = User.query.all()
+    res = schema.dump(users)
+    print(res)
+    return jsonify(res), 200
 
 
 @app.errorhandler(HTTPException)

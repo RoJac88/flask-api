@@ -80,3 +80,22 @@ def get_users():
     all_users = User.query.all()
     res = users_schema.dump(all_users)
     return jsonify(res), 200
+
+@bp.route('/users/<int:user_id>', methods=['GET'])
+@admin_required
+def get_user(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        abort(404, "User not found")
+    res = user_schema.dump(user)
+    return jsonify(res), 200
+
+@bp.route('/users/<int:user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        abort(404, "User not found")
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify(), 204

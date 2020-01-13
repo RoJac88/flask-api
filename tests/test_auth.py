@@ -1,5 +1,3 @@
-from app.models import User
-
 tokens = { 'admin': None, 'user': None}
 
 def test_login(client):
@@ -118,6 +116,21 @@ def test_register(client):
     assert json.get('code') == 409
     assert json.get('description') == 'Username already registered'
 
+    # Existing email
+    res = client.post('/register', 
+    headers={
+        'Authorization': f'Bearer {admin_token}'
+    }, json={
+        'username': 'Jack Sparrow',
+        'email': 'admin@email.com',
+        'password': 'blackpearl'
+    })
+    json = res.get_json()
+    assert res.status_code == 409
+    assert json.get('name') == 'Conflict'
+    assert json.get('code') == 409
+    assert json.get('description') == 'Email already registered'
+
 def test_users(client):
     """Tests for all users endpoint"""
 
@@ -148,8 +161,59 @@ def test_users(client):
     assert res.status_code == 200
     json = res.get_json()
     assert len(json) > 1
+    assert json[0].get('id') == 1
+    assert json[0].get('username') == 'admin'
+    assert json[0].get('email') == "admin@email.com"
+    assert json[0].get('role') == 0
+    assert "created_at" in json[0]
+    assert json[1].get('id') == 2
+    assert json[1].get('username') == 'user'
+    assert json[1].get('email') == "user@email.com"
+    assert json[1].get('role') == 1
+    assert "created_at" in json[1]
     assert "password_hash" not in json[0]
 
 def test_get_user(client):
     """Tests for single user information endpoint"""
-    pass 
+    admin_token = tokens['admin']
+    user_token = tokens['user']
+
+    # Missing Authorization Header:
+    res = client.get('/users/1')
+    assert res.status_code == 401
+    json = res.get_json()
+    assert json.get('name') == 'Unauthorized'
+    assert json.get('code') == 401
+    assert json.get('description') == 'Missing Authorization Header'
+
+    # Access with non admin token:
+    assert user_token is not None
+    res = client.get('/users/1', 
+        headers={'Authorization': f'Bearer {user_token}'})
+    assert res.status_code == 403
+    json = res.get_json()
+    assert json.get('name') == 'Forbidden'
+    assert json.get('code') == 403
+    assert json.get('description') == 'You are not allowed to view this resource'
+
+    # Access with admin token
+    assert admin_token is not None
+    res = client.get('/users/1', 
+        headers={'Authorization': f'Bearer {admin_token}'})
+    assert res.status_code == 200
+    json = res.get_json()
+    assert "created_at" in json
+    assert json.get('id') == 1
+    assert json.get('role') == 0
+    assert json.get('username') == 'admin'
+    assert json.get('email') == 'admin@email.com'
+    assert "password_hash" not in json
+
+    # Access non existing user id
+    res = client.get('/users/666', 
+        headers={'Authorization': f'Bearer {admin_token}'})
+    assert res.status_code == 404
+    json = res.get_json()
+    assert json.get('name') == 'Not Found'
+    assert json.get('code') == 404
+    assert json.get('description') == 'User not found'

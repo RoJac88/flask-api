@@ -5,7 +5,7 @@ from app import jwt
 from flask import jsonify, request, abort, json
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, get_jwt_claims, verify_jwt_in_request
 from app.models import db, User, user_schema, users_schema
-from app.auth import bp
+from app.users import bp
 
 def admin_required(fn):
     """Custum decorator to check for admin permissions (role=0)"""

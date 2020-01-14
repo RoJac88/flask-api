@@ -1,6 +1,8 @@
+from app.models import User
+
 tokens = { 'admin': None, 'user': None}
 
-def test_login(client):
+def test_login(client, db):
     """Tests for the login endpoint"""
 
     # Empty request:
@@ -56,7 +58,7 @@ def test_login(client):
     assert user_token is not None
     tokens['user'] = user_token
 
-def test_register(client):
+def test_register(client, db):
     """Tests for user registration endpoint"""
 
     # Empty request:
@@ -83,6 +85,16 @@ def test_register(client):
     assert json.get('email') == 'newuser@email.com'
     assert json.get('username') == 'new_user'
     assert json.get('role') == 1
+    assert json.get('password', None) is None
+    assert json.get('password_hash', None) is None
+    created_user = User.query.filter_by(username='new_user').first()
+    assert created_user is not None
+    assert created_user.role == 1
+    assert created_user.email == 'newuser@email.com'
+    _id = json.get('id')
+    assert created_user.id == _id
+    assert created_user.password_hash is not None
+    assert created_user.check_password('new')
 
     # Register new user with non admin token:
     user_token = tokens['user']
@@ -100,6 +112,7 @@ def test_register(client):
     assert json.get('name') == 'Forbidden'
     assert json.get('code') == 403
     assert json.get('description') == 'You are not allowed to view this resource'
+    assert User.query.filter_by(username='new_user2').first() is None
 
     # Existing username
     res = client.post('/register', 
@@ -115,6 +128,7 @@ def test_register(client):
     assert json.get('name') == 'Conflict'
     assert json.get('code') == 409
     assert json.get('description') == 'Username already registered'
+    assert len(list(User.query.filter_by(username='admin'))) == 1
 
     # Existing email
     res = client.post('/register', 
@@ -130,8 +144,9 @@ def test_register(client):
     assert json.get('name') == 'Conflict'
     assert json.get('code') == 409
     assert json.get('description') == 'Email already registered'
+    assert len(list(User.query.filter_by(email='admin@email.com'))) == 1
 
-def test_users(client):
+def test_users(client, db):
     """Tests for all users endpoint"""
 
     # Empty request:
@@ -173,7 +188,7 @@ def test_users(client):
     assert "created_at" in json[1]
     assert "password_hash" not in json[0]
 
-def test_get_user(client):
+def test_get_user(client, db):
     """Tests for single user information endpoint"""
     admin_token = tokens['admin']
     user_token = tokens['user']

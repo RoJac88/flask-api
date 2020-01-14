@@ -148,7 +148,6 @@ def test_register(client, db):
 
 def test_users(client, db):
     """Tests for all users endpoint"""
-
     # Empty request:
     res = client.get('/users')
     assert res.status_code == 401
@@ -232,3 +231,32 @@ def test_get_user(client, db):
     assert json.get('name') == 'Not Found'
     assert json.get('code') == 404
     assert json.get('description') == 'User not found'
+
+def test_delete_user(client, db):
+    """Tests for deleting a user"""
+
+    # Access with non admin token
+    user_token = tokens['user']
+    assert user_token is not None 
+    res = client.delete('/users/1', 
+        headers={'Authorization': f'Bearer {user_token}'})
+    json = res.get_json()
+    assert json.get('name') == 'Forbidden'
+    assert json.get('code') == 403
+    assert json.get('description') == 'You are not allowed to view this resource'
+
+    # Access with admin token
+    admin_token = tokens['admin']
+    assert admin_token is not None
+    res = client.delete('/users/2', 
+        headers={'Authorization': f'Bearer {admin_token}'})
+    assert res.status_code == 204
+    assert User.query.get(2) == None
+
+    # Missing Authorization Header
+    res = client.delete('/users/1')
+    assert res.status_code == 401
+    json = res.get_json()
+    assert json.get('name') == 'Unauthorized'
+    assert json.get('code') == 401
+    assert json.get('description') == 'Missing Authorization Header'

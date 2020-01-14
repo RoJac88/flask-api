@@ -28,3 +28,6 @@ def db(app):
         _db.session.add(user)
         _db.session.commit()
         yield _db
+        _db.drop_all()
+        _db.session.commit()
+        _db.session.remove()

@@ -99,4 +99,4 @@ def user(user_id):
         db.session.commit()
         return jsonify(), 204
     else:
-        abort(405, "Method not allowed")
+        abort(405, "The method is not allowed for the requested URL.")

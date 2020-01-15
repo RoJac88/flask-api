@@ -25,12 +25,12 @@ def admin_required(fn):
 # should be added to the access token.
 @jwt.user_claims_loader
 def add_claims_to_access_token(user):
-    return {'role': user.role}
+    return {'role': user.role, 'username': user.username}
 
 # ... define what the identity of the access token should be.
 @jwt.user_identity_loader
 def user_identity_lookup(user):
-    return user.username
+    return user.id
 
 @bp.route('/login', methods=['POST'])
 def login():
@@ -82,15 +82,14 @@ def get_users():
     return jsonify(res), 200
 
 @bp.route('/users/<int:user_id>', methods=['GET', 'DELETE'])
+@jwt_required
 def user(user_id):
+    claims = get_jwt_claims()
+    if claims['role'] > 0 and get_jwt_identity() != user_id:
+        abort(403, "You are not allowed to view this resource")
     user = User.query.get(user_id)
     if not user:
         abort(404, "User not found")
-    verify_jwt_in_request()
-    claims = get_jwt_claims()
-    jwt_id = get_jwt_identity()
-    if claims['role'] > 0 and jwt_id != user.username:
-        abort(403, "You are not allowed to view this resource")
     if request.method == 'GET':
         res = user_schema.dump(user)
         return jsonify(res), 200

@@ -249,7 +249,7 @@ def test_get_user(client, db):
     assert json.get('email') == 'admin@email.com'
     assert "password_hash" not in json
 
-    # Access non existing user id
+    # Access non existing user id with admin token
     res = client.get('/users/666', 
         headers={'Authorization': f'Bearer {admin_token}'})
     assert res.status_code == 404
@@ -257,6 +257,23 @@ def test_get_user(client, db):
     assert json.get('name') == 'Not Found'
     assert json.get('code') == 404
     assert json.get('description') == 'User not found'
+
+    # Access non existing user id with user token
+    res = client.get('/users/666', 
+        headers={'Authorization': f'Bearer {user_token}'})
+    assert res.status_code == 403
+    json = res.get_json()
+    assert json.get('name') == 'Forbidden'
+    assert json.get('code') == 403
+    assert json.get('description') == 'You are not allowed to view this resource'
+
+    # Access non existing user id without token
+    res = client.get('/users/666')
+    assert res.status_code == 401
+    json = res.get_json()
+    assert json.get('name') == 'Unauthorized'
+    assert json.get('code') == 401
+    assert json.get('description') == 'Missing Authorization Header'
 
 def test_delete_user(client, db):
     """Tests for deleting a user"""

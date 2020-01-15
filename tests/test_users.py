@@ -200,9 +200,9 @@ def test_get_user(client, db):
     assert json.get('code') == 401
     assert json.get('description') == 'Missing Authorization Header'
 
-    # Access with non admin token:
+    # User tries to get other user's info:
     assert user_token is not None
-    res = client.get('/users/1', 
+    res = client.get('/users/3', 
         headers={'Authorization': f'Bearer {user_token}'})
     assert res.status_code == 403
     json = res.get_json()
@@ -210,7 +210,33 @@ def test_get_user(client, db):
     assert json.get('code') == 403
     assert json.get('description') == 'You are not allowed to view this resource'
 
-    # Access with admin token
+    # User gets own info
+    assert user_token is not None
+    res = client.get('/users/2', 
+        headers={'Authorization': f'Bearer {user_token}'})
+    assert res.status_code == 200
+    json = res.get_json()
+    assert "created_at" in json
+    assert json.get('id') == 2
+    assert json.get('role') == 1
+    assert json.get('username') == 'user'
+    assert json.get('email') == 'user@email.com'
+    assert "password_hash" not in json
+
+    # Admin gets user info
+    assert admin_token is not None
+    res = client.get('/users/2', 
+        headers={'Authorization': f'Bearer {admin_token}'})
+    assert res.status_code == 200
+    json = res.get_json()
+    assert "created_at" in json
+    assert json.get('id') == 2
+    assert json.get('role') == 1
+    assert json.get('username') == 'user'
+    assert json.get('email') == 'user@email.com'
+    assert "password_hash" not in json
+
+    # Admin gets own info
     assert admin_token is not None
     res = client.get('/users/1', 
         headers={'Authorization': f'Bearer {admin_token}'})
@@ -245,11 +271,20 @@ def test_delete_user(client, db):
     assert json.get('code') == 403
     assert json.get('description') == 'You are not allowed to view this resource'
 
-    # Access with admin token
+    # Admin deletes user
     admin_token = tokens['admin']
     assert admin_token is not None
-    res = client.delete('/users/2', 
+    assert User.query.get(3) is not None
+    res = client.delete('/users/3', 
         headers={'Authorization': f'Bearer {admin_token}'})
+    assert res.status_code == 204
+    assert User.query.get(3) == None
+
+    # User deletes itself
+    assert user_token is not None
+    assert User.query.get(2) is not None
+    res = client.delete('/users/2', 
+        headers={'Authorization': f'Bearer {user_token}'})
     assert res.status_code == 204
     assert User.query.get(2) == None
 

@@ -26,6 +26,9 @@ def db(app):
         user = User(username="user", email="user@email.com")
         user.set_password("user")
         _db.session.add(user)
+        user2 = User(username="user2", email="user2@email.com")
+        user2.set_password("user2")
+        _db.session.add(user2)
         _db.session.commit()
         yield _db
         _db.drop_all()

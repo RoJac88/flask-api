@@ -81,21 +81,22 @@ def get_users():
     res = users_schema.dump(all_users)
     return jsonify(res), 200
 
-@bp.route('/users/<int:user_id>', methods=['GET'])
-@admin_required
-def get_user(user_id):
+@bp.route('/users/<int:user_id>', methods=['GET', 'DELETE'])
+def user(user_id):
     user = User.query.get(user_id)
     if not user:
         abort(404, "User not found")
-    res = user_schema.dump(user)
-    return jsonify(res), 200
-
-@bp.route('/users/<int:user_id>', methods=['DELETE'])
-@admin_required
-def delete_user(user_id):
-    user = User.query.get(user_id)
-    if not user:
-        abort(404, "User not found")
-    db.session.delete(user)
-    db.session.commit()
-    return jsonify(), 204
+    verify_jwt_in_request()
+    claims = get_jwt_claims()
+    jwt_id = get_jwt_identity()
+    if claims['role'] > 0 and jwt_id != user.username:
+        abort(403, "You are not allowed to view this resource")
+    if request.method == 'GET':
+        res = user_schema.dump(user)
+        return jsonify(res), 200
+    elif request.method == 'DELETE':
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify(), 204
+    else:
+        abort(405, "Method not allowed")
